@@ -31,6 +31,7 @@ pub fn ui() -> Router<Arc<AppState>> {
         .route("/shopping-list", get(shopping_list_page))
         .route("/pantry", get(pantry_page))
         .route("/preferences", get(preferences_page))
+        .route("/login", get(login_page))
 }
 
 async fn recipes_page(
@@ -1367,4 +1368,11 @@ async fn preferences_page(
         sync_email,
         sync_syncing,
     }
+}
+
+async fn login_page(
+    State(_state): State<Arc<AppState>>,
+    Extension(_lang): Extension<LanguageIdentifier>,
+) -> axum::response::Response {
+    unimplemented!("login page is not yet implemented")
 }
