@@ -1374,5 +1374,9 @@ async fn login_page(
     State(_state): State<Arc<AppState>>,
     Extension(_lang): Extension<LanguageIdentifier>,
 ) -> axum::response::Response {
-    unimplemented!("login page is not yet implemented")
+    (
+        axum::http::StatusCode::NOT_IMPLEMENTED,
+        axum::response::Html("<html><body><h1>Login – coming soon</h1><p><a href=\"/\">Back to recipes</a></p></body></html>"),
+    )
+        .into_response()
 }
