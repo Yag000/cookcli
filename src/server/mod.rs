@@ -43,12 +43,12 @@ use clap::Args;
 use rust_embed::RustEmbed;
 #[cfg(feature = "sync")]
 use std::sync::atomic::AtomicBool;
-#[cfg(feature = "sync")]
 use std::sync::Mutex;
-use std::{net::IpAddr, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::IpAddr, net::SocketAddr, sync::Arc};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 use tracing::{error, info};
 
+pub mod auth;
 mod handlers;
 mod i18n;
 mod language;
@@ -166,9 +166,15 @@ pub async fn run(ctx: Context, args: ServerArgs) -> Result<()> {
     // Maximum request body size: 1MB (reasonable for recipe files)
     const MAX_BODY_SIZE: usize = 1024 * 1024;
 
+    // Protected UI routes require a valid session when users are configured.
+    let protected_ui = ui::protected_routes().layer(
+        axum::middleware::from_fn_with_state(Arc::clone(&state), auth::auth_middleware),
+    );
+
     let app = Router::new()
         .nest("/api", api(&state)?)
-        .merge(ui::ui())
+        .merge(protected_ui)
+        .merge(ui::auth_routes())
         .route("/static/*file", get(serve_static))
         .nest_service("/api/static", ServeDir::new(&state.base_path));
 
@@ -237,6 +243,38 @@ fn build_state(ctx: Context, args: ServerArgs) -> Result<Arc<AppState>> {
     tracing::info!("Aisle configuration: {:?}", aisle_path);
     tracing::info!("Pantry configuration: {:?}", pantry_path);
 
+    // Load users from users.toml (local config dir takes priority over global).
+    let users = {
+        let local = absolute_path
+            .join("config")
+            .join("users.toml");
+        let users_path = if local.is_file() {
+            local.into_std_path_buf()
+        } else {
+            crate::global_file_path("users.toml")
+                .map(|p: Utf8PathBuf| p.into_std_path_buf())
+                .unwrap_or_else(|_| std::path::PathBuf::from("users.toml"))
+        };
+        match auth::load_users(&users_path) {
+            Ok(u) => {
+                if u.is_empty() {
+                    tracing::info!("No users.toml found or empty – authentication disabled");
+                } else {
+                    tracing::info!(
+                        "Loaded {} user(s) from {:?}",
+                        u.len(),
+                        users_path
+                    );
+                }
+                u
+            }
+            Err(e) => {
+                tracing::warn!("Failed to load users.toml: {e}");
+                vec![]
+            }
+        }
+    };
+
     #[cfg(feature = "sync")]
     let (session_path, session) = {
         let path = crate::global_file_path("session.json")
@@ -256,6 +294,8 @@ fn build_state(ctx: Context, args: ServerArgs) -> Result<Arc<AppState>> {
         base_path: absolute_path,
         aisle_path,
         pantry_path,
+        users,
+        sessions: Arc::new(Mutex::new(HashMap::new())),
         #[cfg(feature = "sync")]
         sync_session: Arc::new(Mutex::new(session)),
         #[cfg(feature = "sync")]
@@ -299,6 +339,10 @@ pub struct AppState {
     pub base_path: Utf8PathBuf,
     pub aisle_path: Option<Utf8PathBuf>,
     pub pantry_path: Option<Utf8PathBuf>,
+    /// Users loaded from `users.toml`.  Empty means authentication is disabled.
+    pub users: Vec<auth::UserConfig>,
+    /// Active sessions: maps session token → username.
+    pub sessions: Arc<Mutex<HashMap<String, String>>>,
     #[cfg(feature = "sync")]
     pub sync_session: Arc<Mutex<Option<sync::SyncSession>>>,
     #[cfg(feature = "sync")]
@@ -376,6 +420,7 @@ fn api(_state: &AppState) -> Result<Router<Arc<AppState>>> {
         .route("/search", get(handlers::search))
         .route("/stats", get(handlers::stats))
         .route("/reload", get(handlers::reload).post(handlers::reload))
+        .route("/auth/me", get(handlers::auth_me))
         .route("/ws/lsp", get(lsp_bridge::lsp_websocket));
 
     #[cfg(feature = "sync")]

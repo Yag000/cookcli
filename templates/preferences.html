@@ -70,6 +70,39 @@
         </div>
         {% endif %}
 
+        {% if auth_required %}
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border-2 border-blue-200">
+            <h2 class="text-lg font-semibold mb-4 text-blue-900">User Account</h2>
+            {% if let Some(username) = logged_in_user %}
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="inline-flex items-center justify-center w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full shadow-sm">
+                        <i class="fa-solid fa-user text-white text-sm" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-blue-900">Signed in as <span class="font-bold">{{ username }}</span></p>
+                        <p class="text-xs text-blue-700 mt-0.5">Your session is active</p>
+                    </div>
+                </div>
+                <form method="post" action="/logout">
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg font-medium transition-all duration-200 border-2 bg-white text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400 text-sm">
+                        Sign Out
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-blue-700">You are not signed in.</p>
+                <a href="/login"
+                   class="px-4 py-2 rounded-lg font-medium transition-all duration-200 border-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-600 hover:from-orange-600 hover:to-orange-700 text-sm">
+                    Sign In
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <div class="bg-gray-50 p-4 rounded">
             <h2 class="text-lg font-semibold mb-3">Configuration Files</h2>
             <div class="space-y-2 text-sm">
