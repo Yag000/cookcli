@@ -31,6 +31,7 @@ anstream = "0.6"
 anstyle = "1"
 anstyle-yansi = "2"
 anyhow = "1"
+rand = "0.8"
 askama = { version = "0.12", features = ["serde-json"] }
 askama_axum = "0.4"
 axum = { version = "0.7", features = ["ws"] }
@@ -59,6 +60,7 @@ self_update = { version = "0.41", default-features = false, features = ["archive
 serde = "1.0"
 serde_json = "1.0"
 serde_yaml = "0.9"
+sha2 = "0.10"
 tabular = { version = "0.2", features = ["ansi-cell"] }
 textwrap = { version = "0.16", features = ["terminal_size"] }
 tokio = { version = "1", features = ["full"] }

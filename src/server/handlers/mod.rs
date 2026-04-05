@@ -1,3 +1,4 @@
+pub mod auth;
 mod common;
 pub mod menus;
 pub mod pantry;
@@ -7,6 +8,7 @@ pub mod stats;
 #[cfg(feature = "sync")]
 pub mod sync;
 
+pub use auth::auth_me;
 pub use menus::{find_todays_menu, get_menu, list_menus};
 pub use pantry::{
     add_item as add_pantry_item, get_depleted, get_expiring, get_pantry,

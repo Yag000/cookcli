@@ -1,9 +1,9 @@
-use crate::server::{templates::*, AppState};
+use crate::server::{auth, templates::*, AppState};
 use axum::{
     extract::{Extension, Host, Path, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Form, Router,
 };
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
@@ -21,7 +21,8 @@ fn error_page(lang: LanguageIdentifier, msg: impl std::fmt::Display) -> axum::re
     template.into_response()
 }
 
-pub fn ui() -> Router<Arc<AppState>> {
+/// All routes that require an authenticated session when users are configured.
+pub fn protected_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(recipes_page))
         .route("/directory/*path", get(recipes_directory))
@@ -31,7 +32,13 @@ pub fn ui() -> Router<Arc<AppState>> {
         .route("/shopping-list", get(shopping_list_page))
         .route("/pantry", get(pantry_page))
         .route("/preferences", get(preferences_page))
-        .route("/login", get(login_page))
+}
+
+/// Authentication routes that are always publicly accessible.
+pub fn auth_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/login", get(login_page).post(post_login))
+        .route("/logout", post(logout))
 }
 
 async fn recipes_page(
@@ -1342,11 +1349,15 @@ async fn pantry_page(
 async fn preferences_page(
     State(state): State<Arc<AppState>>,
     Extension(lang): Extension<LanguageIdentifier>,
+    headers: HeaderMap,
 ) -> impl askama_axum::IntoResponse {
     #[cfg(feature = "sync")]
     let (sync_logged_in, sync_email, sync_syncing) = state.sync_status().await;
     #[cfg(not(feature = "sync"))]
     let (sync_logged_in, sync_email, sync_syncing) = (false, None, false);
+
+    let logged_in_user = auth::get_logged_in_user(&headers, &state.sessions);
+    let auth_required = !state.users.is_empty();
 
     PreferencesTemplate {
         active: "preferences".to_string(),
@@ -1367,16 +1378,102 @@ async fn preferences_page(
         sync_logged_in,
         sync_email,
         sync_syncing,
+        logged_in_user,
+        auth_required,
     }
 }
 
+/// Form data for the login POST request.
+#[derive(Deserialize)]
+struct LoginForm {
+    username: String,
+    password: String,
+}
+
+/// `GET /login` — render the login page.
+///
+/// Redirects to `/` when:
+/// * No users are configured (authentication is disabled), or
+/// * The request already carries a valid session cookie.
 async fn login_page(
-    State(_state): State<Arc<AppState>>,
-    Extension(_lang): Extension<LanguageIdentifier>,
+    State(state): State<Arc<AppState>>,
+    Extension(lang): Extension<LanguageIdentifier>,
+    headers: HeaderMap,
 ) -> axum::response::Response {
-    (
-        axum::http::StatusCode::NOT_IMPLEMENTED,
-        axum::response::Html("<html><body><h1>Login – coming soon</h1><p><a href=\"/\">Back to recipes</a></p></body></html>"),
-    )
-        .into_response()
+    if state.users.is_empty() {
+        return axum::response::Redirect::to("/").into_response();
+    }
+
+    // Already authenticated → skip to home
+    let token = auth::extract_session_cookie(&headers);
+    if let Some(t) = token {
+        if state.sessions.lock().unwrap().contains_key(&t) {
+            return axum::response::Redirect::to("/").into_response();
+        }
+    }
+
+    LoginTemplate {
+        active: "login".to_string(),
+        tr: Tr::new(lang),
+        error: None,
+    }
+    .into_response()
+}
+
+/// `POST /login` — validate credentials and set a session cookie.
+async fn post_login(
+    State(state): State<Arc<AppState>>,
+    Extension(lang): Extension<LanguageIdentifier>,
+    Form(form): Form<LoginForm>,
+) -> axum::response::Response {
+    let user = state
+        .users
+        .iter()
+        .find(|u| u.username == form.username && auth::verify_password(&form.password, &u.password_hash));
+
+    match user {
+        Some(user) => {
+            let token = auth::generate_session_token();
+            state
+                .sessions
+                .lock()
+                .unwrap()
+                .insert(token.clone(), user.username.clone());
+
+            let cookie = format!(
+                "cook_session={token}; Path=/; HttpOnly; SameSite=Strict"
+            );
+            let mut response = axum::response::Redirect::to("/").into_response();
+            response
+                .headers_mut()
+                .insert(header::SET_COOKIE, cookie.parse().unwrap());
+            response
+        }
+        None => LoginTemplate {
+            active: "login".to_string(),
+            tr: Tr::new(lang),
+            error: Some("Invalid username or password.".to_string()),
+        }
+        .into_response(),
+    }
+}
+
+/// `POST /logout` — invalidate the session and clear the cookie.
+async fn logout(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if let Some(token) = auth::extract_session_cookie(&headers) {
+        state.sessions.lock().unwrap().remove(&token);
+    }
+
+    let redirect_to = if state.users.is_empty() { "/" } else { "/login" };
+    let mut response = axum::response::Redirect::to(redirect_to).into_response();
+    response.headers_mut().insert(
+        header::SET_COOKIE,
+        "cook_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"
+            .parse()
+            .unwrap(),
+    );
+    response
 }

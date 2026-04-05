@@ -751,7 +751,7 @@
                         <a href="/preferences" class="hidden md:inline-flex px-3 lg:px-5 py-2 rounded-full font-medium whitespace-nowrap text-sm lg:text-base transition-all duration-300 {% if active == "preferences" %}bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold shadow-lg scale-105{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800 hover:shadow-md hover:-translate-y-0.5{% endif %}">
                             <span>⚙️</span>
                         </a>
-                        <a href="/login" class="hidden md:inline-flex ml-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors print:hidden {% if active == "login" %}ring-2 ring-blue-500{% endif %}" aria-label="Login" title="Login">
+                        <a id="nav-login-btn" href="/login" class="hidden md:inline-flex ml-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors print:hidden {% if active == "login" %}ring-2 ring-blue-500{% endif %}" aria-label="Login" title="Login">
                             <i class="fa-solid fa-user w-5 h-5 text-gray-700 dark:text-gray-300 text-base leading-5" aria-hidden="true"></i>
                         </a>
                         <button onclick="showShortcutsHelp()" class="hidden md:inline-flex ml-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors print:hidden" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
@@ -778,9 +778,9 @@
                                 <a href="/preferences" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                     <span>⚙️</span> <span>Preferences</span>
                                 </a>
-                                <a href="/login" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <a id="nav-login-btn-mobile" href="/login" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                     <i class="fa-solid fa-user w-4 h-4 text-base leading-4" aria-hidden="true"></i>
-                                    <span>Login</span>
+                                    <span id="nav-login-label-mobile">Login</span>
                                 </a>
                                 <button onclick="showShortcutsHelp(); document.getElementById('more-dropdown').classList.add('hidden');" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -917,6 +917,34 @@
                 console.warn('Keyboard shortcuts not loaded');
             };
         }
+    </script>
+
+    <script>
+        // Update nav login icon based on authentication state.
+        (async function () {
+            const btn = document.getElementById('nav-login-btn');
+            const btnMobile = document.getElementById('nav-login-btn-mobile');
+            const labelMobile = document.getElementById('nav-login-label-mobile');
+            if (!btn) return;
+            try {
+                const resp = await fetch('/api/auth/me');
+                if (!resp.ok) return; // 401 → auth required but not logged in, keep defaults
+                const data = await resp.json();
+                if (!data.auth_required) {
+                    // No auth configured – hide login button
+                    btn.style.display = 'none';
+                    if (btnMobile) btnMobile.style.display = 'none';
+                } else if (data.username) {
+                    // Logged in – point icon to preferences and show username as tooltip
+                    btn.setAttribute('href', '/preferences');
+                    btn.setAttribute('title', 'Signed in as ' + data.username);
+                    btn.setAttribute('aria-label', 'Signed in as ' + data.username);
+                    btn.classList.add('ring-2', 'ring-orange-400');
+                    if (btnMobile) btnMobile.setAttribute('href', '/preferences');
+                    if (labelMobile) labelMobile.textContent = data.username;
+                }
+            } catch (_) { /* network error – keep defaults */ }
+        })();
     </script>
 
     {% block scripts %}{% endblock %}

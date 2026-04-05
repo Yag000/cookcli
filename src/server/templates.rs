@@ -185,6 +185,20 @@ pub struct PreferencesTemplate {
     pub sync_logged_in: bool,
     pub sync_email: Option<String>,
     pub sync_syncing: bool,
+    /// The username of the currently logged-in user, or `None` when not
+    /// authenticated (or when authentication is disabled).
+    pub logged_in_user: Option<String>,
+    /// Whether the server has users configured and authentication is required.
+    pub auth_required: bool,
+}
+
+#[derive(Template)]
+#[template(path = "login.html")]
+pub struct LoginTemplate {
+    pub active: String,
+    pub tr: Tr,
+    /// Optional error message shown when credentials are invalid.
+    pub error: Option<String>,
 }
 
 #[derive(Template)]
