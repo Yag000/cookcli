@@ -31,6 +31,7 @@ pub fn ui() -> Router<Arc<AppState>> {
         .route("/shopping-list", get(shopping_list_page))
         .route("/pantry", get(pantry_page))
         .route("/preferences", get(preferences_page))
+        .route("/login", get(login_page))
 }
 
 async fn recipes_page(
@@ -1367,4 +1368,15 @@ async fn preferences_page(
         sync_email,
         sync_syncing,
     }
+}
+
+async fn login_page(
+    State(_state): State<Arc<AppState>>,
+    Extension(_lang): Extension<LanguageIdentifier>,
+) -> axum::response::Response {
+    (
+        axum::http::StatusCode::NOT_IMPLEMENTED,
+        axum::response::Html("<html><body><h1>Login – coming soon</h1><p><a href=\"/\">Back to recipes</a></p></body></html>"),
+    )
+        .into_response()
 }
