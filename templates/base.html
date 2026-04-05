@@ -11,6 +11,7 @@
     <link rel="manifest" href="/static/site.webmanifest">
     <link href="/static/css/output.css" rel="stylesheet">
     <link href="/static/css/custom-styles.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <script>
         // Check for saved theme preference or default to light
         const theme = localStorage.getItem('theme') || 'light';
@@ -751,8 +752,7 @@
                             <span>⚙️</span>
                         </a>
                         <a href="/login" class="hidden md:inline-flex ml-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors print:hidden {% if active == "login" %}ring-2 ring-blue-500{% endif %}" aria-label="Login" title="Login">
-                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                            </svg>
+                            <i class="fa-solid fa-user w-5 h-5 text-gray-700 dark:text-gray-300 text-base leading-5" aria-hidden="true"></i>
                         </a>
                         <button onclick="showShortcutsHelp()" class="hidden md:inline-flex ml-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors print:hidden" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
                             <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
@@ -779,7 +779,7 @@
                                     <span>⚙️</span> <span>Preferences</span>
                                 </a>
                                 <a href="/login" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                    <i class="fa-solid fa-user w-4 h-4 text-base leading-4" aria-hidden="true"></i>
                                     <span>Login</span>
                                 </a>
                                 <button onclick="showShortcutsHelp(); document.getElementById('more-dropdown').classList.add('hidden');" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
