@@ -216,6 +216,15 @@ pub struct NewTemplate {
     pub filename: Option<String>,
 }
 
+#[derive(Template)]
+#[template(path = "login.html")]
+pub struct LoginTemplate {
+    pub active: String,
+    pub tr: Tr,
+    /// Optional error message shown when credentials are invalid.
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct PantrySection {
     pub name: String,
