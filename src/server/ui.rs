@@ -1372,11 +1372,11 @@ async fn preferences_page(
 
 async fn login_page(
     State(_state): State<Arc<AppState>>,
-    Extension(_lang): Extension<LanguageIdentifier>,
-) -> axum::response::Response {
-    (
-        axum::http::StatusCode::NOT_IMPLEMENTED,
-        axum::response::Html("<html><body><h1>Login – coming soon</h1><p><a href=\"/\">Back to recipes</a></p></body></html>"),
-    )
-        .into_response()
+    Extension(lang): Extension<LanguageIdentifier>,
+) -> impl askama_axum::IntoResponse {
+    LoginTemplate {
+        active: "login".to_string(),
+        tr: Tr::new(lang),
+        error: None,
+    }
 }
